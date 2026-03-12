@@ -1,5 +1,3 @@
-# Test harness pentru `assignment-1.py`
-
 import importlib.util
 import os
 import sys
@@ -7,13 +5,13 @@ import traceback
 
 
 def load_graph_class(path):
-    """Încarcă modulul dintr-un fișier (poate conține cratime în nume) și returnează clasa Graph."""
+    """Loads the module from a file (even if the filename contains dashes) and returns the Graph class."""
     spec = importlib.util.spec_from_file_location("assignment_module", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     if hasattr(module, "Graph"):
         return module.Graph
-    raise ImportError("Clasa Graph nu a fost gasita in modulul furnizat.")
+    raise ImportError("The Graph class was not found in the provided module.")
 
 
 def run_tests():
@@ -27,42 +25,42 @@ def run_tests():
 
     g = Graph()
 
-    # Test: adaugare noduri
+    # Test: add vertices
     g.add_vertex("A")
     g.add_vertex("B")
     g.add_vertex("C")
-    assert_eq(g.get_v(), 3, "Numar noduri dupa adaugare")
+    assert_eq(g.get_v(), 3, "Number of vertices after insertion")
 
-    # Test: adaugare muchii
+    # Test: add edges
     g.add_edge("A", "B")
     g.add_edge("B", "C")
-    assert_eq(g.get_e(), 2, "Numar muchii dupa adaugare")
-    assert g.is_edge("A", "B"), "A->B ar trebui sa existe"
-    assert not g.is_edge("C", "A"), "C->A nu ar trebui sa existe"
+    assert_eq(g.get_e(), 2, "Number of edges after insertion")
+    assert g.is_edge("A", "B"), "A->B should exist"
+    assert not g.is_edge("C", "A"), "C->A should not exist"
 
-    # Test: vecini si inbound
-    assert g.neighbors("A") == ["B"], f"Neighbors(A) asteptat ['B'], obtinut {g.neighbors('A')}"
-    assert g.neighbors("B") == ["C"], f"Neighbors(B) asteptat ['C'], obtinut {g.neighbors('B')}"
-    assert g.inbound_neighbors("B") == ["A"], f"Inbound(B) asteptat ['A'], obtinut {g.inbound_neighbors('B')}"
+    # Test: neighbors and inbound
+    assert g.neighbors("A") == ["B"], f"Neighbors(A) expected ['B'], got {g.neighbors('A')}"
+    assert g.neighbors("B") == ["C"], f"Neighbors(B) expected ['C'], got {g.neighbors('B')}"
+    assert g.inbound_neighbors("B") == ["A"], f"Inbound(B) expected ['A'], got {g.inbound_neighbors('B')}"
 
-    # Test: lista muchii
+    # Test: edge list
     edges = set(g.get_edges())
-    assert edges == {("A", "B"), ("B", "C")}, f"Get_edges() invalide: {edges}"
+    assert edges == {("A", "B"), ("B", "C")}, f"Invalid get_edges() result: {edges}"
 
-    # Test: stergere muchie
+    # Test: remove edge
     g.remove_edge("A", "B")
-    assert_eq(g.get_e(), 1, "Numar muchii dupa stergere muchie")
-    assert not g.is_edge("A", "B"), "A->B ar trebui sa fie stearsa"
+    assert_eq(g.get_e(), 1, "Edge count after deletion")
+    assert not g.is_edge("A", "B"), "A->B should be removed"
 
-    # Test: stergere nod
+    # Test: remove vertex
     g.remove_vertex("B")
-    assert_eq(g.get_v(), 2, "Numar noduri dupa stergere nod")
+    assert_eq(g.get_v(), 2, "Vertex count after removal")
 
-    # Dupa stergerea lui B, nu ar trebui sa existe muchii
-    assert g.get_edges() == [], f"Asteptat nici o muchie, obtinut {g.get_edges()}"
+    # After removing B there should be no edges left
+    assert g.get_edges() == [], f"Expected no edges, got {g.get_edges()}"
 
-    # Afisare pentru inspectie
-    print("String output pentru graf:\n", str(g))
+    # Display string output for inspection
+    print("String output for graph:\n", str(g))
 
     print("All tests passed")
 

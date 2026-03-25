@@ -1,11 +1,13 @@
 class Graph:
-    def __init__(self, directed=True):
+    def __init__(self, directed=True, weighted=False):
         """
         Creates an empty graph.
         Complexity: O(1)
         """
         self._directed = directed
+        self._weighted = weighted
         self._matrix = []  # Adjacency matrix
+        self._weights = {}  # Map: (start_index, end_index) -> edge weight
         self._dict_labels = {}  # Map: node_name -> matrix_index (example: {A:0, B:1})
         self._index_to_label = []  # Map: matrix_index -> node_name
         self._nr_edges = 0
@@ -46,7 +48,7 @@ class Graph:
                     edges += 1
         self._nr_edges = edges
 
-    def add_edge(self, start_v, end_v):
+    def add_edge(self, start_v, end_v, weight=0):
         """
         Adds an edge. If it already exists, do nothing.
         Complexity: O(1)
@@ -60,6 +62,8 @@ class Graph:
             if self._matrix[i][j] == 0:
                 self._matrix[i][j] = 1
                 self._nr_edges += 1
+                if self._weighted:
+                    self._weights[(i, j)] = weight
             return
 
         # Undirected graph: maintain symmetric matrix.
@@ -67,12 +71,17 @@ class Graph:
             if self._matrix[i][i] == 0:
                 self._matrix[i][i] = 1
                 self._nr_edges += 1
+                if self._weighted:
+                    self._weights[(i, i)] = weight
             return
 
         if self._matrix[i][j] == 0 and self._matrix[j][i] == 0:
             self._nr_edges += 1
         self._matrix[i][j] = 1
         self._matrix[j][i] = 1
+        if self._weighted:
+            self._weights[(i, j)] = weight
+            self._weights[(j, i)] = weight
 
     def remove_edge(self, start_v, end_v):
         """
@@ -85,6 +94,7 @@ class Graph:
             if self._directed:
                 if self._matrix[i][j] == 1:
                     self._matrix[i][j] = 0
+                    self._weights.pop((i, j), None)
                     self._nr_edges -= 1
                 return
 
@@ -92,12 +102,15 @@ class Graph:
             if i == j:
                 if self._matrix[i][i] == 1:
                     self._matrix[i][i] = 0
+                    self._weights.pop((i, i), None)
                     self._nr_edges -= 1
                 return
 
             if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
                 self._matrix[i][j] = 0
                 self._matrix[j][i] = 0
+                self._weights.pop((i, j), None)
+                self._weights.pop((j, i), None)
                 self._nr_edges -= 1
 
     def remove_vertex(self, vertex):
@@ -109,6 +122,7 @@ class Graph:
             raise ValueError("Error: Vertex does not exist.")
 
         idx_to_remove = self._dict_labels[vertex]
+        old_weights = dict(self._weights)
 
         # Remove the row and column from the matrix
         self._matrix.pop(idx_to_remove)
@@ -118,6 +132,15 @@ class Graph:
         # Refresh the mapping structures
         self._index_to_label.pop(idx_to_remove)
         self._dict_labels = {label: i for i, label in enumerate(self._index_to_label)}
+
+        # Rebuild weight keys because matrix indices shift after vertex removal.
+        self._weights = {}
+        for (i, j), w in old_weights.items():
+            if i == idx_to_remove or j == idx_to_remove:
+                continue
+            new_i = i - 1 if i > idx_to_remove else i
+            new_j = j - 1 if j > idx_to_remove else j
+            self._weights[(new_i, new_j)] = w
 
         self._recompute_edge_count()
 
@@ -190,6 +213,10 @@ class Graph:
                     if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
                         self._matrix[i][j] = 1
                         self._matrix[j][i] = 1
+                        if self._weighted:
+                            w = self._weights.get((i, j), self._weights.get((j, i), 0))
+                            self._weights[(i, j)] = w
+                            self._weights[(j, i)] = w
         else:
             # Directed -> undirected: merge opposite directions into one undirected edge.
             for i in range(n):
@@ -197,9 +224,77 @@ class Graph:
                     val = 1 if (self._matrix[i][j] == 1 or self._matrix[j][i] == 1) else 0
                     self._matrix[i][j] = val
                     self._matrix[j][i] = val
+                    if self._weighted:
+                        if val == 1:
+                            w = self._weights.get((i, j), self._weights.get((j, i), 0))
+                            self._weights[(i, j)] = w
+                            self._weights[(j, i)] = w
+                        else:
+                            self._weights.pop((i, j), None)
+                            self._weights.pop((j, i), None)
 
         self._directed = directed
         self._recompute_edge_count()
+
+    def change_if_weighted(self, weighted: bool):
+        """
+        Enables/disables weighted mode and normalizes the internal weights dictionary.
+        """
+        weighted = bool(weighted)
+        if weighted == self._weighted:
+            return
+
+        if not weighted:
+            self._weights.clear()
+            self._weighted = False
+            return
+
+        self._weighted = True
+        n = len(self._matrix)
+        for i in range(n):
+            for j in range(n):
+                if self._matrix[i][j] == 1:
+                    self._weights[(i, j)] = self._weights.get((i, j), 0)
+
+        if not self._directed:
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
+                        w = self._weights.get((i, j), self._weights.get((j, i), 0))
+                        self._weights[(i, j)] = w
+                        self._weights[(j, i)] = w
+
+    def set_weight(self, start_v, end_v, weight):
+        """
+        Sets the edge weight for an existing edge.
+        """
+        if not self._weighted:
+            raise ValueError("Error: Graph is unweighted.")
+        if start_v not in self._dict_labels or end_v not in self._dict_labels:
+            raise ValueError("Error: One or both vertices do not exist.")
+
+        i, j = self._dict_labels[start_v], self._dict_labels[end_v]
+        if self._matrix[i][j] != 1:
+            raise ValueError("Error: Edge does not exist.")
+
+        self._weights[(i, j)] = weight
+        if not self._directed:
+            self._weights[(j, i)] = weight
+
+    def get_weight(self, start_v, end_v):
+        """
+        Returns the edge weight for an existing edge.
+        """
+        if not self._weighted:
+            raise ValueError("Error: Graph is unweighted.")
+        if start_v not in self._dict_labels or end_v not in self._dict_labels:
+            raise ValueError("Error: One or both vertices do not exist.")
+
+        i, j = self._dict_labels[start_v], self._dict_labels[end_v]
+        if self._matrix[i][j] != 1:
+            raise ValueError("Error: Edge does not exist.")
+
+        return self._weights.get((i, j), 0)
 
     def __str__(self):
         """
@@ -207,7 +302,8 @@ class Graph:
         Complexity: O(n^2), where n is the number of vertices (full matrix traversal).
         """
         graph_type = "directed" if self._directed else "undirected"
-        lines = [f"{graph_type} unweighted"]
+        weight_type = "weighted" if self._weighted else "unweighted"
+        lines = [f"{graph_type} {weight_type}"]
         printed_nodes = set()
 
         n = len(self._matrix)
@@ -217,14 +313,23 @@ class Graph:
             for i in range(n):
                 for j in range(n):
                     if self._matrix[i][j] == 1:
-                        lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
+                        if self._weighted:
+                            lines.append(
+                                f"{self._index_to_label[i]} {self._index_to_label[j]} {self._weights.get((i, j), 0)}"
+                            )
+                        else:
+                            lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
                         printed_nodes.add(self._index_to_label[i])
                         printed_nodes.add(self._index_to_label[j])
         else:
             for i in range(n):
                 for j in range(i, n):
                     if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
-                        lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
+                        if self._weighted:
+                            w = self._weights.get((i, j), self._weights.get((j, i), 0))
+                            lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]} {w}")
+                        else:
+                            lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
                         printed_nodes.add(self._index_to_label[i])
                         printed_nodes.add(self._index_to_label[j])
 

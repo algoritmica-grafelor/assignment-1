@@ -1,12 +1,10 @@
-import copy
-
-
 class Graph:
-    def __init__(self):
+    def __init__(self, directed=True):
         """
-        Creates an empty directed graph.
+        Creates an empty graph.
         Complexity: O(1)
         """
+        self._directed = directed
         self._matrix = []  # Adjacency matrix
         self._dict_labels = {}  # Map: node_name -> matrix_index (example: {A:0, B:1})
         self._index_to_label = []  # Map: matrix_index -> node_name
@@ -31,9 +29,26 @@ class Graph:
         # Append a new zero-filled row for the new vertex
         self._matrix.append([0] * (new_index + 1))
 
+    def _recompute_edge_count(self):
+        """Recompute the number of edges according to the current graph mode."""
+        n = len(self._matrix)
+
+        if self._directed:
+            self._nr_edges = sum(sum(row) for row in self._matrix)
+            return
+
+        edges = 0
+        for i in range(n):
+            if self._matrix[i][i] == 1:
+                edges += 1
+            for j in range(i + 1, n):
+                if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
+                    edges += 1
+        self._nr_edges = edges
+
     def add_edge(self, start_v, end_v):
         """
-        Adds a directed edge. If it already exists, do nothing.
+        Adds an edge. If it already exists, do nothing.
         Complexity: O(1)
         """
         if start_v not in self._dict_labels or end_v not in self._dict_labels:
@@ -41,9 +56,23 @@ class Graph:
 
         i, j = self._dict_labels[start_v], self._dict_labels[end_v]
 
-        if self._matrix[i][j] == 0:
-            self._matrix[i][j] = 1
+        if self._directed:
+            if self._matrix[i][j] == 0:
+                self._matrix[i][j] = 1
+                self._nr_edges += 1
+            return
+
+        # Undirected graph: maintain symmetric matrix.
+        if i == j:
+            if self._matrix[i][i] == 0:
+                self._matrix[i][i] = 1
+                self._nr_edges += 1
+            return
+
+        if self._matrix[i][j] == 0 and self._matrix[j][i] == 0:
             self._nr_edges += 1
+        self._matrix[i][j] = 1
+        self._matrix[j][i] = 1
 
     def remove_edge(self, start_v, end_v):
         """
@@ -52,8 +81,23 @@ class Graph:
         """
         if start_v in self._dict_labels and end_v in self._dict_labels:
             i, j = self._dict_labels[start_v], self._dict_labels[end_v]
-            if self._matrix[i][j] == 1:
+
+            if self._directed:
+                if self._matrix[i][j] == 1:
+                    self._matrix[i][j] = 0
+                    self._nr_edges -= 1
+                return
+
+            # Undirected graph: remove both directions at once.
+            if i == j:
+                if self._matrix[i][i] == 1:
+                    self._matrix[i][i] = 0
+                    self._nr_edges -= 1
+                return
+
+            if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
                 self._matrix[i][j] = 0
+                self._matrix[j][i] = 0
                 self._nr_edges -= 1
 
     def remove_vertex(self, vertex):
@@ -66,11 +110,6 @@ class Graph:
 
         idx_to_remove = self._dict_labels[vertex]
 
-        # Decrease the edge count for each deleted edge
-        for j in range(len(self._matrix)):
-            if self._matrix[idx_to_remove][j] == 1: self._nr_edges -= 1
-            if self._matrix[j][idx_to_remove] == 1 and j != idx_to_remove: self._nr_edges -= 1
-
         # Remove the row and column from the matrix
         self._matrix.pop(idx_to_remove)
         for row in self._matrix:
@@ -79,6 +118,8 @@ class Graph:
         # Refresh the mapping structures
         self._index_to_label.pop(idx_to_remove)
         self._dict_labels = {label: i for i, label in enumerate(self._index_to_label)}
+
+        self._recompute_edge_count()
 
     def get_v(self):
         """ Returns the number of vertices. Complexity: O(1)  """
@@ -108,10 +149,13 @@ class Graph:
     def inbound_neighbors(self, vertex):
         """
         Returns the vertices that have edges toward `vertex`.
-        Complexity: O(n), where n is the number of vertices (scan of the adjacency column).
+        Complexity: O(n), where n is the number of vertices.
         """
         if vertex not in self._dict_labels:
             raise ValueError("Vertex does not exist.")
+
+        if not self._directed:
+            return self.neighbors(vertex)
 
         idx = self._dict_labels[vertex]
         return [self._index_to_label[i] for i, row in enumerate(self._matrix) if row[idx] == 1]
@@ -129,23 +173,60 @@ class Graph:
                     edges.append((self._index_to_label[i], self._index_to_label[j]))
         return edges
 
+    def change_if_directed(self, directed: bool):
+        """
+        Changes graph mode between directed and undirected and normalizes adjacency accordingly.
+        """
+        directed = bool(directed)
+        if directed == self._directed:
+            return
+
+        n = len(self._matrix)
+
+        if not self._directed and directed:
+            # Undirected -> directed: ensure every undirected edge exists in both directions.
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
+                        self._matrix[i][j] = 1
+                        self._matrix[j][i] = 1
+        else:
+            # Directed -> undirected: merge opposite directions into one undirected edge.
+            for i in range(n):
+                for j in range(i + 1, n):
+                    val = 1 if (self._matrix[i][j] == 1 or self._matrix[j][i] == 1) else 0
+                    self._matrix[i][j] = val
+                    self._matrix[j][i] = val
+
+        self._directed = directed
+        self._recompute_edge_count()
+
     def __str__(self):
         """
         Formats the graph for export.
         Complexity: O(n^2), where n is the number of vertices (full matrix traversal).
         """
-        lines = ["directed unweighted"]
+        graph_type = "directed" if self._directed else "undirected"
+        lines = [f"{graph_type} unweighted"]
         printed_nodes = set()
 
+        n = len(self._matrix)
+
         # Append the edges
-        for i in range(len(self._matrix)):
-            has_edge = False
-            for j in range(len(self._matrix)):
-                if self._matrix[i][j] == 1:
-                    lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
-                    has_edge = True
-                    printed_nodes.add(self._index_to_label[i])
-                    printed_nodes.add(self._index_to_label[j])
+        if self._directed:
+            for i in range(n):
+                for j in range(n):
+                    if self._matrix[i][j] == 1:
+                        lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
+                        printed_nodes.add(self._index_to_label[i])
+                        printed_nodes.add(self._index_to_label[j])
+        else:
+            for i in range(n):
+                for j in range(i, n):
+                    if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
+                        lines.append(f"{self._index_to_label[i]} {self._index_to_label[j]}")
+                        printed_nodes.add(self._index_to_label[i])
+                        printed_nodes.add(self._index_to_label[j])
 
         # Append isolated vertices
         for node in self._index_to_label:

@@ -491,6 +491,7 @@ class Graph:
         if header is None:
             raise ValueError("Error: Empty file or missing graph header.")
 
+        #boolean values
         has_directed = "directed" in header
         has_undirected = "undirected" in header
         has_weighted = "weighted" in header

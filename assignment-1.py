@@ -5,8 +5,10 @@ class BFSIterator:
     def __init__(self, graph, start_vertex):
         self._graph = graph
         self._start_vertex = start_vertex
+        # Frontier for BFS order.
         self._queue = deque()
         self._visited = set()
+        # Parent and cached path info for O(1) path query at current node.
         self._parent_map = {}
         self._distance_map = {}
         self._path_map = {}
@@ -49,6 +51,7 @@ class BFSIterator:
             self._current_idx = None
             return
 
+        # Pop next node in BFS order, then discover its unseen neighbors.
         self._current_idx = self._queue.popleft()
         current_label = self._graph._index_to_label[self._current_idx]
         for neighbor in self._graph.neighbors(current_label):
@@ -65,8 +68,10 @@ class DFSIterator:
     def __init__(self, graph, start_vertex):
         self._graph = graph
         self._start_vertex = start_vertex
+        # Explicit stack for iterative DFS.
         self._stack = []
         self._visited = set()
+        # Parent and cached path info for O(1) path query at current node.
         self._parent_map = {}
         self._distance_map = {}
         self._path_map = {}
@@ -109,6 +114,7 @@ class DFSIterator:
             self._current_idx = None
             return
 
+        # Pop next node in DFS order, then push unseen neighbors.
         self._current_idx = self._stack.pop()
         current_label = self._graph._index_to_label[self._current_idx]
         neighbors = self._graph.neighbors(current_label)
@@ -360,6 +366,7 @@ class Graph:
                             self._weights.pop((j, i), None)
 
         self._directed = directed
+        # Recompute edge count because edge semantics changed.
         self._recompute_edge_count()
 
     def change_if_weighted(self, weighted: bool):
@@ -371,6 +378,7 @@ class Graph:
             return
 
         if not weighted:
+            # In unweighted mode, edge costs should not be stored.
             self._weights.clear()
             self._weighted = False
             return
@@ -380,6 +388,7 @@ class Graph:
         for i in range(n):
             for j in range(n):
                 if self._matrix[i][j] == 1:
+                    # Existing edges get default 0 cost if missing.
                     self._weights[(i, j)] = self._weights.get((i, j), 0)
 
         if not self._directed:
@@ -446,6 +455,7 @@ class Graph:
             2 tokens -> unweighted edge
             3 tokens -> weighted edge (third token parsed as float)
         """
+        # We read all lines once so we can find the first non-empty header line.
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
@@ -480,6 +490,7 @@ class Graph:
 
         graph = Graph(directed=has_directed, weighted=has_weighted)
 
+        # Parse data lines after header. Empty lines are ignored.
         for line_no, raw in enumerate(lines[header_line_no:], start=header_line_no + 1):
             stripped = raw.strip()
             if not stripped:
@@ -494,6 +505,7 @@ class Graph:
 
             if len(parts) == 2:
                 start_v, end_v = parts
+                # Auto-create missing vertices when edges mention them.
                 if start_v not in graph._dict_labels:
                     graph.add_vertex(start_v)
                 if end_v not in graph._dict_labels:
@@ -548,6 +560,7 @@ class Graph:
                         printed_nodes.add(self._index_to_label[i])
                         printed_nodes.add(self._index_to_label[j])
         else:
+            # For undirected graphs we only print each edge once (upper triangle).
             for i in range(n):
                 for j in range(i, n):
                     if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:

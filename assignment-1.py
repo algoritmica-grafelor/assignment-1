@@ -166,7 +166,7 @@ class Graph:
     def add_vertex(self, vertex):
         """
         Adds a new vertex. Raises an error if it already exists.
-        Complexity: O(n) due to row/column expansion, where n is the number of vertices.
+        Complexity: O(v) due to row/column expansion, where v is the number of vertices.
         """
         if vertex in self._dict_labels:
             raise ValueError(f"Error: Vertex {vertex} already exists.")
@@ -187,7 +187,7 @@ class Graph:
         n = len(self._matrix)
 
         if self._directed:
-            self._nr_edges = sum(sum(row) for row in self._matrix)
+            self._nr_edges = sum(sum(row) for row in self._matrix) # O(v^2); v-vertices
             return
 
         edges = 0
@@ -196,7 +196,7 @@ class Graph:
                 edges += 1
             for j in range(i + 1, n):
                 if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
-                    edges += 1
+                    edges += 1 # O(v^2); v-vertices
         self._nr_edges = edges
 
     def add_edge(self, start_v, end_v, weight=0.0):
@@ -267,7 +267,7 @@ class Graph:
     def remove_vertex(self, vertex):
         """
         Removes the vertex and all incident edges.
-        Complexity: O(n) because the matrix must drop a row/column and rebuild mappings, where n is the number of vertices.
+        Complexity: O(v^2) because the matrix must drop a row/column and rebuild mappings, where v is the number of vertices.
         """
         if vertex not in self._dict_labels:
             raise ValueError("Error: Vertex does not exist.")
@@ -312,7 +312,7 @@ class Graph:
     def neighbors(self, vertex):
         """
         Returns the list of vertices reachable from `vertex`.
-        Complexity: O(n), where n is the number of vertices (scan of the adjacency row).
+        Complexity: O(v), where v is the number of vertices (scan of the adjacency row).
         """
         if vertex not in self._dict_labels:
             raise ValueError("Vertex does not exist.")
@@ -323,7 +323,7 @@ class Graph:
     def inbound_neighbors(self, vertex):
         """
         Returns the vertices that have edges toward `vertex`.
-        Complexity: O(n), where n is the number of vertices.
+        Complexity: O(v), where v is the number of vertices.
         """
         if vertex not in self._dict_labels:
             raise ValueError("Vertex does not exist.")
@@ -335,11 +335,11 @@ class Graph:
         return [self._index_to_label[i] for i, row in enumerate(self._matrix) if row[idx] == 1]
 
     def get_vertices(self):
-        """ Returns the list of all vertices. Complexity: O(n), where n is the number of vertices.  """
+        """ Returns the list of all vertices. Complexity: O(v), where v is the number of vertices.  """
         return list(self._index_to_label)
 
     def get_edges(self):
-        """ Returns the list of all edges. Complexity: O(n^2), where n is the number of vertices (full matrix scan).  """
+        """ Returns the list of all edges. Complexity: O(v^2), where n is the number of vertices (full matrix scan).  """
         edges = []
         for i in range(len(self._matrix)):
             for j in range(len(self._matrix)):
@@ -556,7 +556,7 @@ class Graph:
     def __str__(self):
         """
         Formats the graph for export.
-        Complexity: O(n^2), where n is the number of vertices (full matrix traversal).
+        Complexity: O(v^2), where v is the number of vertices (full matrix traversal).
         """
         graph_type = "directed" if self._directed else "undirected"
         weight_type = "weighted" if self._weighted else "unweighted"

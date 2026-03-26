@@ -11,7 +11,7 @@ class BFSIterator:
         self._queue = deque()
         self._visited = set()
         # Parent and cached path info for O(1) path query at current node.
-        self._parent_map = {}
+        self._parent_map = {} # {A: B} (child: parent)
         self._distance_map = {}
         self._path_map = {}
         self._current_idx = None
@@ -410,7 +410,7 @@ class Graph:
                     # Existing edges get default 0 cost if missing.
                     self._weights[(i, j)] = self._weights.get((i, j), 0)
 
-        #same weight in both directions if it's directed
+
         if not self._directed:
             for i in range(n):
                 for j in range(i + 1, n):

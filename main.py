@@ -31,6 +31,61 @@ def run_tests():
             return
         raise AssertionError(msg or "Expected exception was not raised")
 
+    def print_graph_from_file(graph_obj, file_name):
+        # Print a full, human-readable snapshot of what was parsed from each file.
+        print(f"\n===== {file_name} =====")
+        print(graph_obj)
+        print("Vertices:", graph_obj.get_vertices())
+        print("Edges:", graph_obj.get_edges())
+        print(f"Counts: V={graph_obj.get_v()}, E={graph_obj.get_e()}")
+
+    def iterator_maps_to_labels(iterator_obj):
+        # Convert internal iterator maps from index keys to label keys for readable debug output.
+        idx_to_label = iterator_obj._graph._index_to_label
+
+        parent_map = {}
+        for child_idx, parent_idx in iterator_obj._parent_map.items():
+            child_label = idx_to_label[child_idx]
+            parent_label = None if parent_idx is None else idx_to_label[parent_idx]
+            parent_map[child_label] = parent_label
+
+        distance_map = {idx_to_label[idx]: dist for idx, dist in iterator_obj._distance_map.items()}
+        path_map = {idx_to_label[idx]: path for idx, path in iterator_obj._path_map.items()}
+        return parent_map, distance_map, path_map
+
+    def print_full_dfs_debug(graph_obj, graph_name):
+        # Run DFS on every component so disconnected graphs are fully covered.
+        print(f"\nDFS iterator debug for {graph_name}:")
+        visited = set()
+        full_order = []
+        merged_parent_map = {}
+        merged_distance_map = {}
+        merged_path_map = {}
+
+        for start_vertex in graph_obj.get_vertices():
+            if start_vertex in visited:
+                continue
+
+            dfs_it = graph_obj.DFS_iter(start_vertex)
+            print(f"  Component start: {start_vertex}")
+            while dfs_it.valid():
+                current = dfs_it.get_current()
+                distance, path = dfs_it.get_path_length()
+                print(f"    current={current}, distance={distance}, path={path}")
+                visited.add(current)
+                full_order.append(current)
+                dfs_it.next()
+
+            parent_map, distance_map, path_map = iterator_maps_to_labels(dfs_it)
+            merged_parent_map.update(parent_map)
+            merged_distance_map.update(distance_map)
+            merged_path_map.update(path_map)
+
+        print("  Full DFS order:", full_order)
+        print("  Parent map:", merged_parent_map)
+        print("  Distance map:", merged_distance_map)
+        print("  Path map:", merged_path_map)
+
     # --- Directed, unweighted basic operations ---
     g = Graph()
     for vertex in ("A", "B", "C"):
@@ -123,25 +178,39 @@ def run_tests():
         dfs_order.append(current)
         dfs_paths[current] = dfs.get_path_length()
         dfs.next()
+    dfs_parent_map, dfs_distance_map, dfs_path_map = iterator_maps_to_labels(dfs)
+    print("\nDFS iterator debug for in-memory test graph:")
+    print("  DFS order:", dfs_order)
+    print("  Parent map:", dfs_parent_map)
+    print("  Distance map:", dfs_distance_map)
+    print("  Path map:", dfs_path_map)
     assert_eq(dfs_order, ["A", "B", "D", "C"], "DFS order mismatch")
     assert_eq(dfs_paths["D"], (2, ["A", "B", "D"]), "DFS path info for D mismatch")
 
     # --- File loading using provided graph files ---
     g1 = Graph.create_from_file(os.path.join(base, "Graph1.txt"))
+    print_graph_from_file(g1, "Graph1.txt")
+    print_full_dfs_debug(g1, "Graph1.txt")
     assert_eq(g1.get_e(), 8, "Graph1 edge count mismatch")
     assert str(g1).splitlines()[0] == "undirected weighted", "Graph1 header mismatch"
     assert_eq(g1.get_weight("1", "3"), 5.0, "Graph1 weight mismatch")
 
     g2 = Graph.create_from_file(os.path.join(base, "Graph2.txt"))
+    print_graph_from_file(g2, "Graph2.txt")
+    print_full_dfs_debug(g2, "Graph2.txt")
     assert_eq(g2.get_e(), 6, "Graph2 edge count mismatch")
     assert str(g2).splitlines()[0] == "undirected unweighted", "Graph2 header mismatch"
 
     g3 = Graph.create_from_file(os.path.join(base, "Graph3.txt"))
+    print_graph_from_file(g3, "Graph3.txt")
+    print_full_dfs_debug(g3, "Graph3.txt")
     assert_eq(g3.get_e(), 9, "Graph3 edge count mismatch")
     assert str(g3).splitlines()[0] == "directed unweighted", "Graph3 header mismatch"
     assert g3.is_edge("A", "B") and not g3.is_edge("B", "A"), "Graph3 directed edge semantics mismatch"
 
     g4 = Graph.create_from_file(os.path.join(base, "Graph4.txt"))
+    print_graph_from_file(g4, "Graph4.txt")
+    print_full_dfs_debug(g4, "Graph4.txt")
     assert_eq(g4.get_e(), 8, "Graph4 edge count mismatch")
     assert str(g4).splitlines()[0] == "directed weighted", "Graph4 header mismatch"
     assert_eq(g4.get_weight("A", "F"), -2.0, "Graph4 weight mismatch")

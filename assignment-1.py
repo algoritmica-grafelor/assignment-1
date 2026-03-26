@@ -168,7 +168,7 @@ class Graph:
         n = len(self._matrix)
 
         if self._directed:
-            self._nr_edges = sum(sum(row) for row in self._matrix)
+            self._nr_edges = sum(sum(row) for row in self._matrix) # O(v^2); v-vertices
             return
 
         edges = 0
@@ -177,7 +177,7 @@ class Graph:
                 edges += 1
             for j in range(i + 1, n):
                 if self._matrix[i][j] == 1 or self._matrix[j][i] == 1:
-                    edges += 1
+                    edges += 1 # O(v^2); v-vertices
         self._nr_edges = edges
 
     def add_edge(self, start_v, end_v, weight=0.0):

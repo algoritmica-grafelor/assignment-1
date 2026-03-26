@@ -1,3 +1,129 @@
+from collections import deque
+
+
+class BFSIterator:
+    def __init__(self, graph, start_vertex):
+        self._graph = graph
+        self._start_vertex = start_vertex
+        self._queue = deque()
+        self._visited = set()
+        self._parent_map = {}
+        self._distance_map = {}
+        self._path_map = {}
+        self._current_idx = None
+        self.first()
+
+    def first(self):
+        if self._start_vertex not in self._graph._dict_labels:
+            raise ValueError("Error: Start vertex does not exist.")
+
+        start_idx = self._graph._dict_labels[self._start_vertex]
+        self._queue = deque([start_idx])
+        self._visited = {start_idx}
+        self._parent_map = {start_idx: None}
+        self._distance_map = {start_idx: 0}
+        self._path_map = {start_idx: [self._start_vertex]}
+        self._current_idx = None
+        self._advance()
+
+    def get_current(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        return self._graph._index_to_label[self._current_idx]
+
+    def next(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        self._advance()
+
+    def valid(self):
+        return self._current_idx is not None
+
+    def get_path_length(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        return self._distance_map[self._current_idx], self._path_map[self._current_idx]
+
+    def _advance(self):
+        if not self._queue:
+            self._current_idx = None
+            return
+
+        self._current_idx = self._queue.popleft()
+        current_label = self._graph._index_to_label[self._current_idx]
+        for neighbor in self._graph.neighbors(current_label):
+            neighbor_idx = self._graph._dict_labels[neighbor]
+            if neighbor_idx not in self._visited:
+                self._visited.add(neighbor_idx)
+                self._queue.append(neighbor_idx)
+                self._parent_map[neighbor_idx] = self._current_idx
+                self._distance_map[neighbor_idx] = self._distance_map[self._current_idx] + 1
+                self._path_map[neighbor_idx] = self._path_map[self._current_idx] + [neighbor]
+
+
+class DFSIterator:
+    def __init__(self, graph, start_vertex):
+        self._graph = graph
+        self._start_vertex = start_vertex
+        self._stack = []
+        self._visited = set()
+        self._parent_map = {}
+        self._distance_map = {}
+        self._path_map = {}
+        self._current_idx = None
+        self.first()
+
+    def first(self):
+        if self._start_vertex not in self._graph._dict_labels:
+            raise ValueError("Error: Start vertex does not exist.")
+
+        start_idx = self._graph._dict_labels[self._start_vertex]
+        self._stack = [start_idx]
+        self._visited = {start_idx}
+        self._parent_map = {start_idx: None}
+        self._distance_map = {start_idx: 0}
+        self._path_map = {start_idx: [self._start_vertex]}
+        self._current_idx = None
+        self._advance()
+
+    def get_current(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        return self._graph._index_to_label[self._current_idx]
+
+    def next(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        self._advance()
+
+    def valid(self):
+        return self._current_idx is not None
+
+    def get_path_length(self):
+        if not self.valid():
+            raise ValueError("Error: Iterator is not valid.")
+        return self._distance_map[self._current_idx], self._path_map[self._current_idx]
+
+    def _advance(self):
+        if not self._stack:
+            self._current_idx = None
+            return
+
+        self._current_idx = self._stack.pop()
+        current_label = self._graph._index_to_label[self._current_idx]
+        neighbors = self._graph.neighbors(current_label)
+
+        # Reverse push keeps neighbor exploration in natural adjacency order.
+        for neighbor in reversed(neighbors):
+            neighbor_idx = self._graph._dict_labels[neighbor]
+            if neighbor_idx not in self._visited:
+                self._visited.add(neighbor_idx)
+                self._stack.append(neighbor_idx)
+                self._parent_map[neighbor_idx] = self._current_idx
+                self._distance_map[neighbor_idx] = self._distance_map[self._current_idx] + 1
+                self._path_map[neighbor_idx] = self._path_map[self._current_idx] + [neighbor]
+
+
 class Graph:
     def __init__(self, directed=True, weighted=False):
         """
@@ -48,7 +174,7 @@ class Graph:
                     edges += 1
         self._nr_edges = edges
 
-    def add_edge(self, start_v, end_v, weight=0):
+    def add_edge(self, start_v, end_v, weight=0.0):
         """
         Adds an edge. If it already exists, do nothing.
         Complexity: O(1)
@@ -295,6 +421,106 @@ class Graph:
             raise ValueError("Error: Edge does not exist.")
 
         return self._weights.get((i, j), 0)
+
+    def BFS_iter(self, start_vertex):
+        """
+        Returns a BFS iterator starting from the given vertex.
+        """
+        return BFSIterator(self, start_vertex)
+
+    def DFS_iter(self, start_vertex):
+        """
+        Returns a DFS iterator starting from the given vertex.
+        """
+        return DFSIterator(self, start_vertex)
+
+    @staticmethod
+    def create_from_file(filepath):
+        """
+        Builds and returns a Graph instance from a text file.
+
+        File format:
+        - First non-empty line: contains graph mode words (directed/undirected, weighted/unweighted)
+        - Remaining non-empty lines:
+            1 token  -> vertex
+            2 tokens -> unweighted edge
+            3 tokens -> weighted edge (third token parsed as float)
+        """
+        with open(filepath, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        header = None
+        header_line_no = None
+        for line_no, raw in enumerate(lines, start=1):
+            stripped = raw.strip()
+            if stripped:
+                header = stripped.lower().split()
+                header_line_no = line_no
+                break
+
+        if header is None:
+            raise ValueError("Error: Empty file or missing graph header.")
+
+        has_directed = "directed" in header
+        has_undirected = "undirected" in header
+        has_weighted = "weighted" in header
+        has_unweighted = "unweighted" in header
+
+        if has_directed == has_undirected:
+            raise ValueError(
+                f"Error: Invalid direction flag on line {header_line_no}. "
+                "Use exactly one of: directed / undirected."
+            )
+
+        if has_weighted == has_unweighted:
+            raise ValueError(
+                f"Error: Invalid weight flag on line {header_line_no}. "
+                "Use exactly one of: weighted / unweighted."
+            )
+
+        graph = Graph(directed=has_directed, weighted=has_weighted)
+
+        for line_no, raw in enumerate(lines[header_line_no:], start=header_line_no + 1):
+            stripped = raw.strip()
+            if not stripped:
+                continue
+
+            parts = stripped.split()
+            if len(parts) == 1:
+                vertex = parts[0]
+                if vertex not in graph._dict_labels:
+                    graph.add_vertex(vertex)
+                continue
+
+            if len(parts) == 2:
+                start_v, end_v = parts
+                if start_v not in graph._dict_labels:
+                    graph.add_vertex(start_v)
+                if end_v not in graph._dict_labels:
+                    graph.add_vertex(end_v)
+                graph.add_edge(start_v, end_v)
+                continue
+
+            if len(parts) == 3:
+                start_v, end_v, weight_raw = parts
+                try:
+                    weight = float(weight_raw)
+                except ValueError as exc:
+                    raise ValueError(f"Error: Invalid weight on line {line_no}: '{weight_raw}'.") from exc
+
+                if start_v not in graph._dict_labels:
+                    graph.add_vertex(start_v)
+                if end_v not in graph._dict_labels:
+                    graph.add_vertex(end_v)
+                graph.add_edge(start_v, end_v, weight)
+                continue
+
+            raise ValueError(
+                f"Error: Invalid line format at line {line_no}. "
+                "Expected 1, 2, or 3 tokens."
+            )
+
+        return graph
 
     def __str__(self):
         """

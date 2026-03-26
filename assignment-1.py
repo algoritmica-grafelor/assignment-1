@@ -410,6 +410,7 @@ class Graph:
                     # Existing edges get default 0 cost if missing.
                     self._weights[(i, j)] = self._weights.get((i, j), 0)
 
+        #same weight in both directions if it's directed
         if not self._directed:
             for i in range(n):
                 for j in range(i + 1, n):

@@ -2,6 +2,8 @@ from collections import deque
 
 
 class BFSIterator:
+    """Iterator that visits vertices in Breadth-First Search order."""
+
     def __init__(self, graph, start_vertex):
         self._graph = graph
         self._start_vertex = start_vertex
@@ -16,6 +18,7 @@ class BFSIterator:
         self.first()
 
     def first(self):
+        # Reset the iterator and position it on the first BFS node.
         if self._start_vertex not in self._graph._dict_labels:
             raise ValueError("Error: Start vertex does not exist.")
 
@@ -29,19 +32,24 @@ class BFSIterator:
         self._advance()
 
     def get_current(self):
+        # Return the label of the current vertex in traversal order.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         return self._graph._index_to_label[self._current_idx]
 
     def next(self):
+        # Move iterator to the next discovered vertex.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         self._advance()
 
     def valid(self):
+        # Valid means we still point to a current vertex.
         return self._current_idx is not None
 
     def get_path_length(self):
+        # Return: (distance from start, path list from start to current).
+        # Distance lookup is O(1) because it is cached while traversing.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         return self._distance_map[self._current_idx], self._path_map[self._current_idx]
@@ -57,6 +65,8 @@ class BFSIterator:
         for neighbor in self._graph.neighbors(current_label):
             neighbor_idx = self._graph._dict_labels[neighbor]
             if neighbor_idx not in self._visited:
+                # In BFS the first time we discover a node, we found its shortest
+                # path in number of edges from the start vertex.
                 self._visited.add(neighbor_idx)
                 self._queue.append(neighbor_idx)
                 self._parent_map[neighbor_idx] = self._current_idx
@@ -65,6 +75,8 @@ class BFSIterator:
 
 
 class DFSIterator:
+    """Iterator that visits vertices in Depth-First Search order."""
+
     def __init__(self, graph, start_vertex):
         self._graph = graph
         self._start_vertex = start_vertex
@@ -79,6 +91,7 @@ class DFSIterator:
         self.first()
 
     def first(self):
+        # Reset the iterator and position it on the first DFS node.
         if self._start_vertex not in self._graph._dict_labels:
             raise ValueError("Error: Start vertex does not exist.")
 
@@ -92,19 +105,24 @@ class DFSIterator:
         self._advance()
 
     def get_current(self):
+        # Return the label of the current vertex in traversal order.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         return self._graph._index_to_label[self._current_idx]
 
     def next(self):
+        # Move iterator to the next discovered vertex.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         self._advance()
 
     def valid(self):
+        # Valid means we still point to a current vertex.
         return self._current_idx is not None
 
     def get_path_length(self):
+        # Return: (distance from start, path list from start to current).
+        # Distance lookup is O(1) because it is cached while traversing.
         if not self.valid():
             raise ValueError("Error: Iterator is not valid.")
         return self._distance_map[self._current_idx], self._path_map[self._current_idx]
@@ -123,6 +141,7 @@ class DFSIterator:
         for neighbor in reversed(neighbors):
             neighbor_idx = self._graph._dict_labels[neighbor]
             if neighbor_idx not in self._visited:
+                # Mark visited when pushed to avoid duplicates on the stack.
                 self._visited.add(neighbor_idx)
                 self._stack.append(neighbor_idx)
                 self._parent_map[neighbor_idx] = self._current_idx

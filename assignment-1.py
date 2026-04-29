@@ -599,3 +599,80 @@ class Graph:
                 lines.append(str(node))
 
         return "\n".join(lines)
+
+def main():
+    graph1 = Graph.create_from_file("Graph1.txt")
+    graph2 = Graph.create_from_file("Graph2.txt")
+    graph3 = Graph.create_from_file("Graph3.txt")
+    graph4 = Graph.create_from_file("Graph4.txt")
+
+    # ---------------- Graph 1 ----------------
+    print("\n===== GRAPH 1 (start = 7) BFS =====")
+    it = graph1.BFS_iter("7")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    print("\n===== GRAPH 1 (start = 7) DFS =====")
+    it = graph1.DFS_iter("7")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    # ---------------- Graph 2 ----------------
+    print("\n===== GRAPH 2 (start = 7) BFS =====")
+    it = graph2.BFS_iter("7")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    print("\n===== GRAPH 2 (start = 7) DFS =====")
+    it = graph2.DFS_iter("7")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    # ---------------- Graph 3 ----------------
+    print("\n===== GRAPH 3 (start = A) BFS =====")
+    it = graph3.BFS_iter("A")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    print("\n===== GRAPH 3 (start = A) DFS =====")
+    it = graph3.DFS_iter("A")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    # ---------------- Graph 4 ----------------
+    print("\n===== GRAPH 4 (start = A) BFS =====")
+    it = graph4.BFS_iter("A")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+    print("\n===== GRAPH 4 (start = A) DFS =====")
+    it = graph4.DFS_iter("A")
+    while it.valid():
+        v = it.get_current()
+        dist, path = it.get_path_length()
+        print(f"{v}: dist={dist}, path={' -> '.join(path)}")
+        it.next()
+
+if __name__ == "__main__":
+    main()

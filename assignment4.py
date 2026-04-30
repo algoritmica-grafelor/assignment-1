@@ -112,13 +112,13 @@ def highest_cost_path(graph, start_vertex, target_vertex):
     return distances[target_vertex], path
 
 def main():
-    graph_file = "dag_test.txt"
+    graph_file = "DAG.txt"
 
     try:
         g = Graph.create_from_file(graph_file)
 
-        start_node = "A"
-        target_node = "F"
+        start_node = "1"
+        target_node = "6"
 
         print("Checking graph and calculating highest cost path...")
         max_cost, path = highest_cost_path(g, start_node, target_node)

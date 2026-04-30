@@ -191,15 +191,15 @@ def print_comparison(start_v, target_v, res_dijkstra, res_astar):
     print(f"{'A*':<15} {res_astar['stats']['cost_checks']:<15} {res_astar['stats']['pq_pushes']:<10} {res_astar['stats']['pq_pops']:<10}")
 
 if __name__ == "__main__":
-    graph_file = "positive_graph.txt"
-    coords_file = "coordinates.txt"
+    graph_file = "positives_3_v50_e200.txt"
+    coords_file = "positives_3_vertex_positions.txt"
 
     try:
         g = Graph.create_from_file(graph_file)
         coords = read_coordinates(coords_file)
 
         start_node = "1"
-        target_node = "5"
+        target_node = "50"
 
         dijkstra_results = dijkstra(g, start_node, target_node)
         astar_results = a_star(g, start_node, target_node, coords)

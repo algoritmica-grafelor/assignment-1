@@ -62,7 +62,6 @@ def highest_cost_path(graph, start_vertex, target_vertex):
         if distances[u] != float('-inf'):  # Only process reachable vertices
 
             for v in graph.neighbors(u):
-                # --- MODIFIED SECTION FOR UNWEIGHTED SUPPORT ---
                 try:
                     weight = graph.get_weight(u, v)
                     if weight is None:  # In case the graph returns None for missing weights

@@ -22,6 +22,23 @@ def read_coordinates(filepath):
                 coords[vertex] = (x, y)
     return coords
 
+def read_coordinates2(filepath):
+    coords = {}
+    with open(filepath, 'r') as f:
+        for line in f:
+            parts = line.strip().split(',')
+
+            if len(parts) >= 3:
+                try:
+                    vertex = parts[0].strip()
+                    x = float(parts[1])
+                    y = float(parts[2])
+                    coords[vertex] = (x, y)
+                except ValueError:
+                    continue
+
+    return coords
+
 def euclidean_distance(v1, v2, coords):
     """
     Calculates the Euclidean distance between two vertices.
@@ -196,7 +213,7 @@ if __name__ == "__main__":
 
     try:
         g = Graph.create_from_file(graph_file)
-        coords = read_coordinates(coords_file)
+        coords = read_coordinates2(coords_file)
 
         start_node = "1"
         target_node = "50"

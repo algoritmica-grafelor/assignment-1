@@ -89,28 +89,14 @@ def main():
     Test function to validate the algorithm.
     We build a test bipartite graph directly in the code.
     """
-    # Create an undirected graph
-    g = Graph(directed=False, weighted=False)
+    g = Graph.create_from_file("Bipartite.txt")
 
     # Define the partitions
-    partition_u = ["U1", "U2", "U3", "U4"]
-    partition_v = ["V1", "V2", "V3", "V4"]
-
-    # Add the vertices to the graph
-    for node in partition_u + partition_v:
-        g.add_vertex(node)
-
-    # Add the edges (bipartite relations)
-    g.add_edge("U1", "V1")
-    g.add_edge("U1", "V2")
-    g.add_edge("U2", "V1")
-    g.add_edge("U3", "V2")
-    g.add_edge("U3", "V3")
-    g.add_edge("U4", "V3")
+    partition_u = ["A", "B", "C", "D"]
+    partition_v = ["1", "2", "3", "4"]
 
     print("Bipartite Graph created. Searching for Maximum Matching...")
 
-    # Run the algorithm
     matching = maximum_bipartite_matching_iterative(g, partition_u, partition_v)
 
     print(f"\nFound {len(matching)} maximum matching pairs:")
